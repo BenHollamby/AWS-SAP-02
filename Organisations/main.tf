@@ -21,7 +21,8 @@ provider "aws" {
 }
 
 resource "aws_organizations_organization" "org" {
-  # No configuration options are needed
+  feature_set = "ALL"
+  enabled_policy_types = ["SERVICE_CONTROL_POLICY"]
 }
 
 resource "aws_organizations_account" "my_account" {
@@ -90,3 +91,44 @@ resource "aws_iam_role" "assume_role" {
     ]
   })
 }
+
+
+data "aws_iam_policy_document" "policy" {
+  statement {
+    sid = "AllowAssumeRole"
+    actions = [
+      "sts:AssumeRole"
+    ]
+    resources = [
+      "arn:aws:iam::${aws_organizations_account.my_account.id}:role/OrganisationAccountAccessRole"
+    ]
+  }
+}
+
+
+data "aws_iam_policy_document" "deny_s3" {
+  statement {
+    effect    = "Allow"
+    actions   = ["*"]
+    resources = ["*"]
+  }
+  statement {
+    effect    = "Deny"
+    actions   = ["s3:*"]
+    resources = ["*"]
+  }
+}
+
+resource "aws_organizations_policy" "s3_policy" {
+  name    = "deny-s3"
+  description = "Deny all S3 actions"
+  content = data.aws_iam_policy_document.deny_s3.json
+  type    = "SERVICE_CONTROL_POLICY"
+}
+
+// Attach the policy to the OU to prevent all S3 actions
+# resource "aws_organizations_policy_attachment" "unit" {
+#   policy_id = aws_organizations_policy.s3_policy.id
+#   target_id = aws_organizations_organizational_unit.prod_ou.id
+# }
+
