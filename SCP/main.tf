@@ -46,21 +46,3 @@ resource "aws_s3_object" "object" {
 }
 
 
-data "aws_iam_policy_document" "deny_s3" {
-  statement {
-    effect    = "Allow"
-    actions   = ["*"]
-    resources = ["*"]
-  }
-  statement {
-    effect    = "Deny"
-    actions   = ["s3:*"]
-    resources = ["*"]
-  }
-}
-
-resource "aws_organizations_policy" "s3_policy" {
-  provider = aws.general
-  name    = "deny-s3"
-  content = data.aws_iam_policy_document.deny_s3.json
-}
